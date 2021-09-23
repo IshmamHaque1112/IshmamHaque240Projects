@@ -1,0 +1,76 @@
+#Program Name: Project 2: Sum of Floats
+#Programmer: Ishmam Haque
+#Date: 4/22/20
+#Instructor: Neil Frary
+#Cross references: s5:N t0:Sum
+         .data
+ Prompt: .asciiz "\n Please Input a value for N= "
+ Result: .asciiz "\n The sum of the integers from 1 to N is "
+ Bye:    .asciiz "\n ***Adios Amigo have a good day"
+ Truncated:.asciiz "The entered value has been truncated. The original value is: "
+ PostTruncated: .asciiz "\n The post truncate value is "
+ Storedfloat: .float 0.0
+ StoredInteger: .word 0
+         .globl main
+         .text 
+ main:
+   li   $v0, 4 # system call code for Print String
+   la   $a0, Prompt # load address of prompt into $a0
+   syscall # print the prompt address
+   li $v0, 6 # system call code for Read Float
+   syscall #reads the value of N into $f0
+   s.s $f0, Storedfloat #stores float in data
+   mfc1 $t1, $f0        #transfers $f0 to integer register
+   srl $t4, $t1, 31     #checks for sign
+   bnez $t4, End #if negative end
+   srl $t2, $t1, 23     #shifts right to get exponent
+   addi $s3, $t2, -127   #s3 is the exponent 
+   sll $t4, $t1, 9      #shift number left to remove exponent
+   srl $t5, $t4, 9      #shift number right to return to same position without exponent
+   addi $t6, $t5, 8388608  #add 2^23 to give implied bit
+   addi $t7, $s3, 9        #add exponent and 9 together
+   sllv $s4, $t6, $t7      #shift to the left of exponent+9 If the number doesn't equal 0 then there is a fraction.       
+   rol $t4, $t6, $t7        #rotate bits  left by $t7 to get the integer in the right most bits
+   li $t5, 31               #loads a 31 into $t5
+   sub $t2, $t5, $s3        #subtract the exponent from t5 shift value
+   sllv $t5, $t4, $t2       #zero out the fractional part
+   srlv $s5, $t5, $t2        #reset integer bits. Integer in $s5
+   blez $s5, End #branch to end if $v0 <= 0
+   li $t0, 0 #clear register $t0 to 0
+   sw $s5, StoredInteger #stores integer in data
+   bnez $s4, iffractional #if not equal to 0, branch to iffractional
+   b Loop
+ iffractional: 
+  li $v0, 4  #Print String
+  la $a0, Truncated #load string address
+  syscall
+  li $v0, 2    #Print Float
+  l.s $f12, Storedfloat #load storedfloat
+  syscall
+  li $v0, 4 #Print string
+  la $a0, PostTruncated #Load string address
+  syscall
+  lw $t0, StoredInteger #load storedinteger into register
+  li $v0, 1 #Print Integer
+  move $a0, $t0 #move register value to print
+  syscall
+  li $t0, 0 #reset $t0
+  b Loop
+ Loop:
+   add $t0, $t0, $s5 #sum of integers in register $t0
+   addi $s5, $s5, -1 #summing integers in reverse order
+   bnez $s5, Loop   #branch to loop if $v0 != 0
+   li  $v0, 4 # system call code for Print String
+   la $a0, Result # load address of message into $a0
+   syscall #print the string
+   li $v0, 1 #system call code for Print Integer
+   move $a0, $t0 # move value to be printed to $a0
+   syscall #print sum of integers
+   b main  #branch to main
+ End: li $v0, 4 #system call code for Print String
+      la $a0, Bye #load address of msg. into $a0
+      syscall #print the string
+      li $v0, 10 #terminate program run and
+      syscall #return control to system
+      
+ 
